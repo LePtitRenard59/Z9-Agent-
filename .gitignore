@@ -1,0 +1,8 @@
+node_modules
+dist
+*.log
+
+# Secrets — ne JAMAIS committer
+.env
+.env.*
+!.env.example
