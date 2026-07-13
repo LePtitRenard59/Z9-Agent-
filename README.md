@@ -51,17 +51,18 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 ## Fonctionnalités
 - ✅ `/ping` — test de latence
 - ✅ `/embed` — publie un embed conçu sur [Discohook](https://discohook.org) (colle le JSON)
-- ✅ **Reaction-roles** — `/setup-roles` publie un panneau à boutons ; le membre s'auto-attribue/retire un rôle au clic (config dans `src/features/roles/panels.ts`)
+- ✅ **Reaction-roles** — `/reactionrole` ouvre un **éditeur interactif** (menus déroulants + boutons) pour créer et publier un panneau de rôles, **entièrement depuis Discord** (aucun ID à copier, aucun fichier à éditer)
 - ✅ Message de bienvenue automatique
 - 🔜 Tickets, report, suggestions, FAQ, annonces, star-board, logs
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
 
-### Configurer les reaction-roles
-1. Créer les rôles voulus sur le serveur (ex. *Nouveautés*, *Bons plans*, *Drops*).
-2. Récupérer l'ID de chaque rôle : taper `\@NomDuRole` dans un salon (avec l'antislash) → Discord affiche `<@&123…>`, le nombre est l'ID.
-3. Coller ces IDs dans `src/features/roles/panels.ts`.
-4. `npm run deploy` (pour enregistrer `/setup-roles`), puis dans un salon : `/setup-roles panneau:notifs`.
-5. ⚠️ Le **rôle du bot** doit être **au-dessus** des rôles distribués (Paramètres serveur → Rôles).
+### Utiliser les reaction-roles (`/reactionrole`)
+1. Taper `/reactionrole` (staff, permission *Gérer les rôles*) → un panneau d'édition **éphémère** s'ouvre.
+2. **Menu « Ajouter des rôles »** → choisir les rôles dans la liste.
+3. **Menu « Salon »** → choisir où publier.
+4. Bouton **« ✏️ Titre & description »** → personnaliser le message.
+5. Bouton **« ✅ Publier »** → le panneau à boutons est posté ; les membres cliquent pour s'attribuer/retirer les rôles.
+6. ⚠️ Le **rôle du bot** doit être **au-dessus** des rôles distribués (Paramètres serveur → Rôles).
 
 ## Workflow
 Développement en local → `git commit` → `git push` (repo dédié) → déploiement sur l'hébergeur

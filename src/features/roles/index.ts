@@ -5,41 +5,46 @@ import {
   EmbedBuilder,
   type BaseMessageOptions,
   type ButtonInteraction,
+  type MessageActionRowComponentBuilder,
 } from 'discord.js'
 import { Z9_COLOR } from '../../config'
-import { rolePanels, type RolePanel } from './panels'
 
-export function getPanel(key: string): RolePanel | undefined {
-  return rolePanels.find(panel => panel.key === key)
+export interface RoleEntry {
+  roleId: string
+  label: string
+  style: ButtonStyle
 }
 
-/** Construit l'embed + les boutons d'un panneau de rôles (5 boutons max par ligne). */
-export function buildPanelMessage(panel: RolePanel): BaseMessageOptions {
-  const embed = new EmbedBuilder()
-    .setColor(Z9_COLOR)
-    .setTitle(panel.title)
-    .setDescription(panel.description)
+/** Brouillon d'un panneau de rôles, en cours d'édition dans /reactionrole. */
+export interface RoleDraft {
+  title: string
+  description: string
+  channelId?: string
+  roles: RoleEntry[]
+}
 
-  const usable = panel.roles.filter(role => role.roleId)
-  const rows: ActionRowBuilder<ButtonBuilder>[] = []
+/** Construit le message final (embed + boutons de rôles) à publier. */
+export function buildRolePanel(draft: RoleDraft): BaseMessageOptions {
+  const embed = new EmbedBuilder().setColor(Z9_COLOR).setTitle(draft.title || 'Rôles')
+  if (draft.description) embed.setDescription(draft.description)
 
-  for (let i = 0; i < usable.length; i += 5) {
-    const row = new ActionRowBuilder<ButtonBuilder>()
-    for (const role of usable.slice(i, i + 5)) {
-      const button = new ButtonBuilder()
-        .setCustomId(`role:toggle:${role.roleId}`)
-        .setLabel(role.label)
-        .setStyle(role.style ?? ButtonStyle.Secondary)
-      if (role.emoji) button.setEmoji(role.emoji)
-      row.addComponents(button)
+  const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = []
+  for (let i = 0; i < draft.roles.length; i += 5) {
+    const row = new ActionRowBuilder<MessageActionRowComponentBuilder>()
+    for (const role of draft.roles.slice(i, i + 5)) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`role:toggle:${role.roleId}`)
+          .setLabel(role.label)
+          .setStyle(role.style),
+      )
     }
     rows.push(row)
   }
-
   return { embeds: [embed], components: rows }
 }
 
-/** Ajoute ou retire le rôle quand un membre clique un bouton du panneau. */
+/** Ajoute ou retire le rôle quand un membre clique un bouton d'un panneau publié. */
 export async function handleRoleButton(interaction: ButtonInteraction): Promise<void> {
   if (!interaction.guild) {
     await interaction.reply({ content: '❌ Action possible uniquement sur le serveur.', ephemeral: true })
@@ -49,7 +54,7 @@ export async function handleRoleButton(interaction: ButtonInteraction): Promise<
   const roleId = interaction.customId.split(':')[2]
   const role = interaction.guild.roles.cache.get(roleId) ?? (await interaction.guild.roles.fetch(roleId).catch(() => null))
   if (!role) {
-    await interaction.reply({ content: '❌ Rôle introuvable — vérifie la config (panels.ts).', ephemeral: true })
+    await interaction.reply({ content: '❌ Ce rôle n’existe plus.', ephemeral: true })
     return
   }
 
