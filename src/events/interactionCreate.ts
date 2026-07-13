@@ -1,6 +1,7 @@
 import type { Interaction } from 'discord.js'
 import { commandMap } from '../commands'
 import { handleEmbedModal } from '../commands/embed'
+import { handleRoleButton } from '../features/roles'
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
@@ -25,8 +26,15 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       return
     }
 
-    // À venir : boutons (tickets, reaction-roles) et menus déroulants (faq)
-    // if (interaction.isButton()) { … }
+    // Boutons
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith('role:toggle:')) {
+        await handleRoleButton(interaction)
+      }
+      return
+    }
+
+    // À venir : menus déroulants (faq), boutons tickets…
     // if (interaction.isStringSelectMenu()) { … }
   } catch (error) {
     console.error('Erreur lors du traitement d’une interaction :', error)
