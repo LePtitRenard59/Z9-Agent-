@@ -50,11 +50,21 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 
 ## Fonctionnalités
 - ✅ `/ping` — test de latence
-- ✅ `/embed` — publie un embed conçu sur [Discohook](https://discohook.org) (colle le JSON)
-- ✅ **Reaction-roles** — `/reactionrole` ouvre un **éditeur interactif** (menus déroulants + boutons) pour créer et publier un panneau de rôles, **entièrement depuis Discord** (aucun ID à copier, aucun fichier à éditer)
+- ✅ **Embed builder** — `/embed create · edit · post · list · delete · clone` : crée des embeds **nommés, sauvegardés et éditables** via un éditeur interactif (titre, description, couleur, image/GIF, miniature, champs, auteur, footer, timestamp, texte, boutons-liens, import JSON Discohook). Stockés en **SQLite**.
+- ✅ **Reaction-roles** — `/reactionrole` ouvre un **éditeur interactif** (menus déroulants + boutons) pour créer et publier un panneau de rôles, **entièrement depuis Discord**
 - ✅ Message de bienvenue automatique
-- 🔜 Tickets, report, suggestions, FAQ, annonces, star-board, logs
+- 🔜 Reaction-roles enrichis (menu/réactions, descriptions, image), tickets, report, suggestions, FAQ, annonces, star-board, logs
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
+
+### Base de données
+Le bot utilise **`node:sqlite`** (module SQLite intégré à Node, aucune dépendance native).
+Le fichier vit dans `data/z9bot.db` (ignoré par git). Le schéma est créé automatiquement au démarrage.
+
+### Utiliser l'embed builder (`/embed`)
+- `/embed create <nom>` → ouvre l'éditeur (menu « Éditer une partie » + aperçu en direct), puis **💾 Sauvegarder** ou **📢 Publier ici**.
+- `/embed edit <nom>` → rouvre un embed pour le modifier.
+- `/embed post <nom> [salon]` → publie un embed sauvegardé.
+- `/embed list · delete · clone` → gérer ses embeds.
 
 ### Utiliser les reaction-roles (`/reactionrole`)
 1. Taper `/reactionrole` (staff, permission *Gérer les rôles*) → un panneau d'édition **éphémère** s'ouvre.

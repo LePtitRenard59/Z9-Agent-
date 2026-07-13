@@ -2,6 +2,9 @@ node_modules
 dist
 *.log
 
+# Base de données locale (SQLite)
+data/
+
 # Secrets — ne JAMAIS committer
 .env
 .env.*

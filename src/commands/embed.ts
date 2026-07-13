@@ -1,94 +1,115 @@
-import {
-  ActionRowBuilder,
-  ChannelType,
-  ModalBuilder,
-  PermissionFlagsBits,
-  SlashCommandBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  type APIEmbed,
-  type ModalSubmitInteraction,
-} from 'discord.js'
+import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 import type { Command } from '../types/command'
+import { embedStore } from '../db/embeds'
+import { emptyEmbed } from '../features/embeds/types'
+import { openEditor } from '../features/embeds/editor'
+import { isEmbedEmpty, renderEmbedMessage } from '../features/embeds/render'
 
 /**
- * /embed — publie un embed conçu sur Discohook.
- * L'utilisateur choisit un salon, puis colle le JSON Discohook dans un modal.
+ * /embed — constructeur d'embeds nommés, éditables et réutilisables (façon Mimu).
+ * Sous-commandes : create · edit · post · list · delete · clone.
  */
 export const embed: Command = {
   data: new SlashCommandBuilder()
     .setName('embed')
-    .setDescription('Publier un embed (JSON Discohook) dans un salon')
-    .addChannelOption(option =>
-      option
-        .setName('salon')
-        .setDescription('Salon où publier le message')
-        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-        .setRequired(true),
+    .setDescription('Créer et gérer des embeds')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(s =>
+      s.setName('create').setDescription('Créer un nouvel embed nommé')
+        .addStringOption(o => o.setName('nom').setDescription('Nom de l’embed').setRequired(true)),
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    .addSubcommand(s =>
+      s.setName('edit').setDescription('Éditer un embed existant')
+        .addStringOption(o => o.setName('nom').setDescription('Nom de l’embed').setRequired(true)),
+    )
+    .addSubcommand(s =>
+      s.setName('post').setDescription('Publier un embed')
+        .addStringOption(o => o.setName('nom').setDescription('Nom de l’embed').setRequired(true))
+        .addChannelOption(o => o.setName('salon').setDescription('Salon (par défaut : ici)').addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)),
+    )
+    .addSubcommand(s => s.setName('list').setDescription('Lister les embeds enregistrés'))
+    .addSubcommand(s =>
+      s.setName('delete').setDescription('Supprimer un embed')
+        .addStringOption(o => o.setName('nom').setDescription('Nom de l’embed').setRequired(true)),
+    )
+    .addSubcommand(s =>
+      s.setName('clone').setDescription('Dupliquer un embed')
+        .addStringOption(o => o.setName('source').setDescription('Embed à copier').setRequired(true))
+        .addStringOption(o => o.setName('nouveau').setDescription('Nom de la copie').setRequired(true)),
+    ),
   async execute(interaction) {
-    const channel = interaction.options.getChannel('salon', true)
+    if (!interaction.guildId) {
+      await interaction.reply({ content: '❌ Commande utilisable uniquement sur un serveur.', ephemeral: true })
+      return
+    }
+    const guildId = interaction.guildId
+    const sub = interaction.options.getSubcommand()
 
-    const modal = new ModalBuilder()
-      .setCustomId(`embed:publish:${channel.id}`)
-      .setTitle('Publier un embed')
-
-    const input = new TextInputBuilder()
-      .setCustomId('json')
-      .setLabel('JSON Discohook (message complet)')
-      .setPlaceholder('Colle ici le JSON copié depuis discohook.org…')
-      .setStyle(TextInputStyle.Paragraph)
-      .setRequired(true)
-      .setMaxLength(4000)
-
-    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input))
-    await interaction.showModal(modal)
+    switch (sub) {
+      case 'create': {
+        const name = interaction.options.getString('nom', true)
+        if (embedStore.exists(guildId, name)) {
+          await interaction.reply({ content: `❌ Un embed **${name}** existe déjà. Utilise \`/embed edit ${name}\`.`, ephemeral: true })
+          return
+        }
+        await openEditor(interaction, name, guildId, emptyEmbed())
+        return
+      }
+      case 'edit': {
+        const name = interaction.options.getString('nom', true)
+        const record = embedStore.get(guildId, name)
+        if (!record) {
+          await interaction.reply({ content: `❌ Aucun embed nommé **${name}**.`, ephemeral: true })
+          return
+        }
+        await openEditor(interaction, name, guildId, record.data)
+        return
+      }
+      case 'post': {
+        const name = interaction.options.getString('nom', true)
+        const record = embedStore.get(guildId, name)
+        if (!record) {
+          await interaction.reply({ content: `❌ Aucun embed nommé **${name}**.`, ephemeral: true })
+          return
+        }
+        if (isEmbedEmpty(record.data) && !record.data.content) {
+          await interaction.reply({ content: '❌ Cet embed est vide.', ephemeral: true })
+          return
+        }
+        const targetId = interaction.options.getChannel('salon')?.id ?? interaction.channelId
+        const target = targetId ? await interaction.guild?.channels.fetch(targetId).catch(() => null) : null
+        if (!target || !target.isTextBased() || !('send' in target)) {
+          await interaction.reply({ content: '❌ Salon de publication invalide.', ephemeral: true })
+          return
+        }
+        await target.send(renderEmbedMessage(record.data))
+        await interaction.reply({ content: `📢 Embed **${name}** publié dans <#${target.id}>.`, ephemeral: true })
+        return
+      }
+      case 'list': {
+        const names = embedStore.list(guildId)
+        await interaction.reply({
+          content: names.length ? `📁 Embeds enregistrés :\n${names.map(n => `• \`${n}\``).join('\n')}` : 'Aucun embed enregistré. Crée-en un avec `/embed create <nom>`.',
+          ephemeral: true,
+        })
+        return
+      }
+      case 'delete': {
+        const name = interaction.options.getString('nom', true)
+        const ok = embedStore.delete(guildId, name)
+        await interaction.reply({ content: ok ? `🗑️ Embed **${name}** supprimé.` : `❌ Aucun embed nommé **${name}**.`, ephemeral: true })
+        return
+      }
+      case 'clone': {
+        const source = interaction.options.getString('source', true)
+        const target = interaction.options.getString('nouveau', true)
+        const ok = embedStore.clone(guildId, source, target, interaction.user.id)
+        await interaction.reply({
+          content: ok ? `📑 **${source}** dupliqué vers **${target}**.` : `❌ Impossible (source introuvable ou **${target}** existe déjà).`,
+          ephemeral: true,
+        })
+        return
+      }
+    }
   },
-}
-
-interface DiscohookPayload {
-  content?: string
-  embeds?: APIEmbed[]
-  messages?: { data?: { content?: string; embeds?: APIEmbed[] } }[]
-}
-
-/** Normalise les deux formats d'export Discohook (direct ou « messages[].data »). */
-function normalize(payload: DiscohookPayload): { content?: string; embeds: APIEmbed[] } {
-  const data = payload.messages?.[0]?.data ?? payload
-  return { content: data.content, embeds: data.embeds ?? [] }
-}
-
-/** Gère la soumission du modal /embed : parse le JSON et publie le message. */
-export async function handleEmbedModal(interaction: ModalSubmitInteraction): Promise<void> {
-  const channelId = interaction.customId.split(':')[2]
-  const raw = interaction.fields.getTextInputValue('json')
-
-  let parsed: DiscohookPayload
-  try {
-    parsed = JSON.parse(raw) as DiscohookPayload
-  } catch {
-    await interaction.reply({ content: '❌ Le JSON est invalide. Vérifie le copier-coller depuis Discohook.', ephemeral: true })
-    return
-  }
-
-  const { content, embeds } = normalize(parsed)
-  if (!content && embeds.length === 0) {
-    await interaction.reply({ content: '❌ Le JSON ne contient ni texte ni embed.', ephemeral: true })
-    return
-  }
-
-  const channel = await interaction.client.channels.fetch(channelId).catch(() => null)
-  if (!channel || !channel.isTextBased() || !('send' in channel)) {
-    await interaction.reply({ content: '❌ Salon introuvable ou non textuel.', ephemeral: true })
-    return
-  }
-
-  try {
-    await channel.send({ content: content ?? undefined, embeds })
-    await interaction.reply({ content: `✅ Embed publié dans <#${channelId}>.`, ephemeral: true })
-  } catch (err) {
-    console.error('Erreur publication embed:', err)
-    await interaction.reply({ content: "❌ Échec de la publication (permissions du bot ? contenu du JSON ?).", ephemeral: true })
-  }
 }

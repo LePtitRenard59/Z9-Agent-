@@ -1,6 +1,5 @@
 import type { Interaction } from 'discord.js'
 import { commandMap } from '../commands'
-import { handleEmbedModal } from '../commands/embed'
 import { handleRoleButton } from '../features/roles'
 import {
   onAddRole,
@@ -10,6 +9,13 @@ import {
   onPublish,
   onResetRoles,
 } from '../features/roles/builder'
+import {
+  onEditorClose,
+  onEditorModal,
+  onEditorPublishHere,
+  onEditorSave,
+  onPartSelect,
+} from '../features/embeds/editor'
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
@@ -22,6 +28,12 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       const command = commandMap.get(interaction.commandName)
       if (!command) return
       await command.execute(interaction)
+      return
+    }
+
+    // Menus déroulants (string select)
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === 'emb:part') await onPartSelect(interaction)
       return
     }
 
@@ -39,25 +51,22 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
 
     // Boutons
     if (interaction.isButton()) {
-      if (interaction.customId.startsWith('role:toggle:')) {
-        await handleRoleButton(interaction)
-      } else if (interaction.customId === 'rrb:edittext') {
-        await onEditTextButton(interaction)
-      } else if (interaction.customId === 'rrb:reset') {
-        await onResetRoles(interaction)
-      } else if (interaction.customId === 'rrb:publish') {
-        await onPublish(interaction)
-      }
+      const id = interaction.customId
+      if (id.startsWith('role:toggle:')) await handleRoleButton(interaction)
+      else if (id === 'rrb:edittext') await onEditTextButton(interaction)
+      else if (id === 'rrb:reset') await onResetRoles(interaction)
+      else if (id === 'rrb:publish') await onPublish(interaction)
+      else if (id === 'emb:save') await onEditorSave(interaction)
+      else if (id === 'emb:publishhere') await onEditorPublishHere(interaction)
+      else if (id === 'emb:close') await onEditorClose(interaction)
       return
     }
 
     // Soumissions de modals
     if (interaction.isModalSubmit()) {
-      if (interaction.customId === 'rrb:textmodal') {
-        await onEditTextModal(interaction)
-      } else if (interaction.customId.startsWith('embed:publish:')) {
-        await handleEmbedModal(interaction)
-      }
+      const id = interaction.customId
+      if (id === 'rrb:textmodal') await onEditTextModal(interaction)
+      else if (id.startsWith('emb:m:')) await onEditorModal(interaction)
       return
     }
   } catch (error) {
