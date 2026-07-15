@@ -16,7 +16,7 @@ import {
 } from 'discord.js'
 import { embedStore } from '../../db/embeds'
 import type { StoredEmbed } from './types'
-import { buildEmbed, isEmbedEmpty, renderEmbedMessage } from './render'
+import { buildEmbed, isEmbedEmpty, isHttpUrl, renderEmbedMessage } from './render'
 
 interface Draft {
   name: string
@@ -216,10 +216,19 @@ export async function onEditorModal(interaction: ModalSubmitInteraction): Promis
   const part = interaction.customId.split(':')[2]
   const val = (id: string) => interaction.fields.getTextInputValue(id).trim()
 
+  // Valide une URL : vide → undefined, valide → la garde, invalide → ignore + avertit.
+  const warnings: string[] = []
+  const cleanUrl = (raw: string, label: string): string | undefined => {
+    if (!raw) return undefined
+    if (isHttpUrl(raw)) return raw
+    warnings.push(`⚠️ ${label} ignoré : « ${raw} » n’est pas une URL valide (doit commencer par \`http\`).`)
+    return undefined
+  }
+
   switch (part) {
     case 'title':
       d.title = val('title')
-      d.url = val('url') || undefined
+      d.url = cleanUrl(val('url'), 'Lien du titre')
       break
     case 'description':
       d.description = val('description')
@@ -234,16 +243,16 @@ export async function onEditorModal(interaction: ModalSubmitInteraction): Promis
       break
     }
     case 'image':
-      d.image = val('image') || undefined
+      d.image = cleanUrl(val('image'), 'Image')
       break
     case 'thumbnail':
-      d.thumbnail = val('thumbnail') || undefined
+      d.thumbnail = cleanUrl(val('thumbnail'), 'Miniature')
       break
     case 'author':
-      d.author = { name: val('name'), iconURL: val('iconURL') || undefined, url: val('url') || undefined }
+      d.author = { name: val('name'), iconURL: cleanUrl(val('iconURL'), 'Icône auteur'), url: cleanUrl(val('url'), 'Lien auteur') }
       break
     case 'footer':
-      d.footer = { text: val('text'), iconURL: val('iconURL') || undefined }
+      d.footer = { text: val('text'), iconURL: cleanUrl(val('iconURL'), 'Icône footer') }
       break
     case 'content':
       d.content = val('content') || undefined
@@ -260,9 +269,15 @@ export async function onEditorModal(interaction: ModalSubmitInteraction): Promis
       d.fields.splice(idx, 1)
       break
     }
-    case 'button':
-      d.buttons = [...(d.buttons ?? []), { label: val('label'), url: val('url'), emoji: val('emoji') || undefined }]
+    case 'button': {
+      const url = cleanUrl(val('url'), 'Lien du bouton')
+      if (!url) {
+        await interaction.reply({ content: '❌ Un bouton-lien a besoin d’une URL valide (commençant par `http`).', ephemeral: true })
+        return
+      }
+      d.buttons = [...(d.buttons ?? []), { label: val('label'), url, emoji: val('emoji') || undefined }]
       break
+    }
     case 'import':
       if (!mergeDiscohook(d, interaction.fields.getTextInputValue('json'))) {
         await interaction.reply({ content: '❌ JSON invalide.', ephemeral: true })
@@ -273,8 +288,9 @@ export async function onEditorModal(interaction: ModalSubmitInteraction): Promis
 
   if (interaction.isFromMessage()) {
     await interaction.update(renderEditor(draft))
+    if (warnings.length) await interaction.followUp({ content: warnings.join('\n'), ephemeral: true }).catch(() => undefined)
   } else {
-    await interaction.reply({ content: '✅ Modifié.', ephemeral: true })
+    await interaction.reply({ content: warnings.length ? warnings.join('\n') : '✅ Modifié.', ephemeral: true })
   }
 }
 
