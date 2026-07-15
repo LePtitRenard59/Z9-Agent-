@@ -51,9 +51,9 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 ## Fonctionnalités
 - ✅ `/ping` — test de latence
 - ✅ **Embed builder** — `/embed create · edit · post · list · delete · clone` : crée des embeds **nommés, sauvegardés et éditables** via un éditeur interactif (titre, description, couleur, image/GIF, miniature, champs, auteur, footer, timestamp, texte, boutons-liens, import JSON Discohook). Stockés en **SQLite**.
-- ✅ **Reaction-roles** — `/reactionrole` ouvre un **éditeur interactif** (menus déroulants + boutons) pour créer et publier un panneau de rôles, **entièrement depuis Discord**
+- ✅ **Reaction-roles** — `/reactionrole create · list · delete` : éditeur interactif **entièrement depuis Discord**. 3 **modes** (boutons / menu déroulant / réactions), 4 **comportements** (normal / unique / ajout-seul / limité), config par rôle (emoji, description, label, style), apparence (titre, description, couleur, image). Panneaux **persistés en SQLite**.
 - ✅ Message de bienvenue automatique
-- 🔜 Reaction-roles enrichis (menu/réactions, descriptions, image), tickets, report, suggestions, FAQ, annonces, star-board, logs
+- 🔜 Reaction-roles v3.2 (apparence complète, logs, édition d'un panneau), tickets, report, suggestions, FAQ, annonces, star-board, logs
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
 
 ### Base de données
@@ -66,13 +66,15 @@ Le fichier vit dans `data/z9bot.db` (ignoré par git). Le schéma est créé aut
 - `/embed post <nom> [salon]` → publie un embed sauvegardé.
 - `/embed list · delete · clone` → gérer ses embeds.
 
-### Utiliser les reaction-roles (`/reactionrole`)
-1. Taper `/reactionrole` (staff, permission *Gérer les rôles*) → un panneau d'édition **éphémère** s'ouvre.
-2. **Menu « Ajouter des rôles »** → choisir les rôles dans la liste.
-3. **Menu « Salon »** → choisir où publier.
-4. Bouton **« ✏️ Titre & description »** → personnaliser le message.
-5. Bouton **« ✅ Publier »** → le panneau à boutons est posté ; les membres cliquent pour s'attribuer/retirer les rôles.
-6. ⚠️ Le **rôle du bot** doit être **au-dessus** des rôles distribués (Paramètres serveur → Rôles).
+### Utiliser les reaction-roles (`/reactionrole create`)
+1. `/reactionrole create` (staff) → un éditeur **éphémère** s'ouvre.
+2. **Ajouter des rôles** → menu de rôles.
+3. **Salon de publication** → menu de salons.
+4. **Réglages…** → Mode (boutons / menu / réactions), Comportement (normal / unique / ajout-seul / limité), Apparence (titre, couleur, image), Configurer un rôle (emoji, description, label, style), Retirer un rôle.
+5. **✅ Publier** → le panneau est posté (en mode réactions, le bot ajoute les emojis).
+- ⚠️ Le **rôle du bot** doit être **au-dessus** des rôles distribués.
+- Le salon de logs (`CHANNEL_LOGS` dans `.env`) reçoit une trace à chaque changement de rôle.
+- `/reactionrole list` liste les panneaux (avec leur `#id`), `/reactionrole delete <id>` en supprime un.
 
 ## Workflow
 Développement en local → `git commit` → `git push` (repo dédié) → déploiement sur l'hébergeur

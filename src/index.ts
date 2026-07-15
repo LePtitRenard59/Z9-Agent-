@@ -2,6 +2,7 @@ import { Client, Events, GatewayIntentBits, Partials } from 'discord.js'
 import { config } from './config'
 import { onInteraction } from './events/interactionCreate'
 import { onGuildMemberAdd } from './events/guildMemberAdd'
+import { onReactionAdd, onReactionRemove } from './events/reactions'
 
 const client = new Client({
   intents: [
@@ -20,5 +21,7 @@ client.once(Events.ClientReady, readyClient => {
 
 client.on(Events.InteractionCreate, onInteraction)
 client.on(Events.GuildMemberAdd, onGuildMemberAdd)
+client.on(Events.MessageReactionAdd, onReactionAdd)
+client.on(Events.MessageReactionRemove, onReactionRemove)
 
 client.login(config.token)

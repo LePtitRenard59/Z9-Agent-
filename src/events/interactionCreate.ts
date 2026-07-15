@@ -1,14 +1,15 @@
 import type { Interaction } from 'discord.js'
 import { commandMap } from '../commands'
-import { handleRoleButton } from '../features/roles'
 import {
   onAddRole,
-  onEditTextButton,
-  onEditTextModal,
+  onBuilderClose,
+  onBuilderModal,
+  onBuilderPublish,
+  onOpt,
+  onPanelButton,
+  onPanelSelect,
   onPickChannel,
-  onPublish,
-  onResetRoles,
-} from '../features/roles/builder'
+} from '../features/roles'
 import {
   onEditorClose,
   onEditorModal,
@@ -19,31 +20,32 @@ import {
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
- * Chaque fonctionnalité branche ses composants ici via leur préfixe de customId.
+ * Chaque fonctionnalité branche ses composants via leur préfixe de customId.
  */
 export async function onInteraction(interaction: Interaction): Promise<void> {
   try {
-    // Slash-commands
     if (interaction.isChatInputCommand()) {
       const command = commandMap.get(interaction.commandName)
-      if (!command) return
-      await command.execute(interaction)
+      if (command) await command.execute(interaction)
       return
     }
 
     // Menus déroulants (string select)
     if (interaction.isStringSelectMenu()) {
-      if (interaction.customId === 'emb:part') await onPartSelect(interaction)
+      const id = interaction.customId
+      if (id === 'emb:part') await onPartSelect(interaction)
+      else if (id === 'rrb:opt') await onOpt(interaction)
+      else if (id.startsWith('rr:sel:')) await onPanelSelect(interaction)
       return
     }
 
-    // Menus déroulants de rôles (éditeur reaction-roles)
+    // Menus de rôles (éditeur de panneau)
     if (interaction.isRoleSelectMenu()) {
       if (interaction.customId === 'rrb:addrole') await onAddRole(interaction)
       return
     }
 
-    // Menus déroulants de salons (éditeur reaction-roles)
+    // Menus de salons (éditeur de panneau)
     if (interaction.isChannelSelectMenu()) {
       if (interaction.customId === 'rrb:channel') await onPickChannel(interaction)
       return
@@ -52,10 +54,9 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
     // Boutons
     if (interaction.isButton()) {
       const id = interaction.customId
-      if (id.startsWith('role:toggle:')) await handleRoleButton(interaction)
-      else if (id === 'rrb:edittext') await onEditTextButton(interaction)
-      else if (id === 'rrb:reset') await onResetRoles(interaction)
-      else if (id === 'rrb:publish') await onPublish(interaction)
+      if (id.startsWith('rr:tgl:')) await onPanelButton(interaction)
+      else if (id === 'rrb:publish') await onBuilderPublish(interaction)
+      else if (id === 'rrb:close') await onBuilderClose(interaction)
       else if (id === 'emb:save') await onEditorSave(interaction)
       else if (id === 'emb:publishhere') await onEditorPublishHere(interaction)
       else if (id === 'emb:close') await onEditorClose(interaction)
@@ -65,16 +66,14 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
     // Soumissions de modals
     if (interaction.isModalSubmit()) {
       const id = interaction.customId
-      if (id === 'rrb:textmodal') await onEditTextModal(interaction)
+      if (id.startsWith('rrb:m:')) await onBuilderModal(interaction)
       else if (id.startsWith('emb:m:')) await onEditorModal(interaction)
       return
     }
   } catch (error) {
     console.error('Erreur lors du traitement d’une interaction :', error)
     if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
-      await interaction
-        .reply({ content: '❌ Une erreur est survenue.', ephemeral: true })
-        .catch(() => undefined)
+      await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true }).catch(() => undefined)
     }
   }
 }
