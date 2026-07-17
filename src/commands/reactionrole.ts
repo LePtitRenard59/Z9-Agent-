@@ -1,7 +1,6 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 import type { Command } from '../types/command'
 import { rolePanelStore } from '../db/rolePanels'
-import { MODE_LABELS } from '../features/roles/types'
 import { startRoleBuilder, startRoleBuilderEdit } from '../features/roles/builder'
 
 /**
@@ -52,7 +51,10 @@ export const reactionRole: Command = {
         await interaction.reply({ content: 'Aucun panneau. Crée-en un avec `/reactionrole create`.', ephemeral: true })
         return
       }
-      const lines = panels.map(p => `\`#${p.id}\` · ${MODE_LABELS[p.mode]} · ${p.entries.length} rôle(s)${p.channelId ? ` · <#${p.channelId}>` : ''}`)
+      const lines = panels.map(p => {
+        const roles = p.groups.reduce((n, g) => n + g.entries.length, 0)
+        return `\`#${p.id}\` · ${p.groups.length} groupe(s) · ${roles} rôle(s)${p.channelId ? ` · <#${p.channelId}>` : ''}`
+      })
       await interaction.reply({ content: `📋 Panneaux :\n${lines.join('\n')}`, ephemeral: true })
       return
     }

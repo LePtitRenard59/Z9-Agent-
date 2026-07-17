@@ -1,10 +1,4 @@
-import type {
-  Emoji,
-  MessageReaction,
-  PartialMessageReaction,
-  PartialUser,
-  User,
-} from 'discord.js'
+import type { Emoji, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js'
 import { rolePanelStore } from '../db/rolePanels'
 import { addRole, logRoleChange, removeRole } from '../features/roles/apply'
 
@@ -27,15 +21,26 @@ async function handle(
     if (!message.guildId || !message.guild) return
 
     const panel = rolePanelStore.getByMessage(message.guildId, message.id)
-    if (!panel || panel.mode !== 'reactions') return
+    if (!panel) return
 
-    const entry = panel.entries.find(e => entryMatches(e.emoji, reaction.emoji))
-    if (!entry) return
+    // Cherche, parmi les groupes « réactions », celui dont un emoji correspond.
+    let match: { groupIdx: number; roleId: string } | undefined
+    for (let i = 0; i < panel.groups.length; i++) {
+      const group = panel.groups[i]
+      if (group.type !== 'reactions') continue
+      const entry = group.entries.find(e => entryMatches(e.emoji, reaction.emoji))
+      if (entry) {
+        match = { groupIdx: i, roleId: entry.roleId }
+        break
+      }
+    }
+    if (!match) return
 
     const member = await message.guild.members.fetch(user.id).catch(() => null)
     if (!member) return
 
-    const res = add ? await addRole(member, panel, entry.roleId) : await removeRole(member, panel, entry.roleId)
+    const group = panel.groups[match.groupIdx]
+    const res = add ? await addRole(member, group, match.roleId) : await removeRole(member, group, match.roleId)
     await logRoleChange(member, res)
   } catch (error) {
     console.error('Erreur réaction → rôle :', error)

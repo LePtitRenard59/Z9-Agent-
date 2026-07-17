@@ -51,7 +51,7 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 ## Fonctionnalités
 - ✅ `/ping` — test de latence
 - ✅ **Embed builder** — `/embed create · edit · post · list · delete · clone` : crée des embeds **nommés, sauvegardés et éditables** via un éditeur interactif (titre, description, couleur, image/GIF, miniature, champs, auteur, footer, timestamp, texte, boutons-liens, import JSON Discohook). Stockés en **SQLite**.
-- ✅ **Reaction-roles** — `/reactionrole create · edit · list · delete` : éditeur interactif **entièrement depuis Discord**. 3 **modes** (boutons / menu déroulant / réactions), 4 **comportements** (normal / unique / ajout-seul / limité), config par rôle (emoji, description, label, style), apparence (titre/couleur/image **ou** un embed sauvegardé complet). **Édition** d'un panneau publié + **logs** (`CHANNEL_ROLE_LOGS`). Persistés en SQLite.
+- ✅ **Reaction-roles** — `/reactionrole create · edit · list · delete` : éditeur interactif **entièrement depuis Discord**, organisé en sections (écran principal + écran par groupe). Un panneau = **un embed riche + plusieurs groupes** (jusqu'à 5 rangées) : chaque groupe est un **menu**, des **boutons** ou des **réactions**, avec son propre comportement (normal / unique / ajout-seul / limité), ses rôles (emoji, description, label, style) et son titre. Plus des **boutons-liens**. → permet plusieurs menus (Ton Pays, Ta ville…) sur un seul message. Apparence via formulaire **ou** embed sauvegardé complet. **Édition** en place + **logs** (`CHANNEL_ROLE_LOGS`). Persistés en SQLite (JSON).
 - ✅ Message de bienvenue automatique
 - 🔜 Reaction-roles avancés (rôles temporaires, prérequis), tickets, report, suggestions, FAQ, annonces, star-board, logs
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
@@ -67,15 +67,22 @@ Le fichier vit dans `data/z9bot.db` (ignoré par git). Le schéma est créé aut
 - `/embed list · delete · clone` → gérer ses embeds.
 
 ### Utiliser les reaction-roles (`/reactionrole create`)
-1. `/reactionrole create` (staff) → un éditeur **éphémère** s'ouvre.
-2. **Ajouter des rôles** → menu de rôles.
-3. **Salon de publication** → menu de salons.
-4. **Réglages…** → Mode (boutons / menu / réactions), Comportement (normal / unique / ajout-seul / limité), Apparence (titre, couleur, image), Configurer un rôle (emoji, description, label, style), Retirer un rôle.
-5. **Apparence** : soit via le formulaire (titre/couleur/image), soit via **« 🎨 Charger un embed sauvegardé »** (menu présent dès qu'un embed existe — donne une apparence complète : miniature, champs, footer, auteur…).
-6. **✅ Publier** → le panneau est posté (en mode réactions, le bot ajoute les emojis).
+**Écran principal** :
+- **Salon de publication** (menu de salons)
+- **⚙️ Configurer…** → Apparence (titre/couleur/image/miniature), Ajouter un groupe, Éditer le groupe N, Ajouter un bouton-lien
+- **🎨 Charger un embed sauvegardé** (apparence complète, si un embed existe)
+- **✅ Publier / Mettre à jour**
+
+**Écran d'un groupe** (après « Ajouter/Éditer un groupe ») :
+- **Ajouter des rôles** (menu de rôles)
+- **⚙️ Réglages du groupe** → Type (menu / boutons / réactions), Comportement (normal / unique / ajout-seul / limité), Titre du menu, Configurer un rôle (emoji/description/label/style), Retirer un rôle
+- **⬅️ Retour** · **🗑️ Supprimer le groupe**
+
+Notes :
+- Max **5 rangées** de composants par message (l'éditeur affiche le compteur `Rangées : X/5`).
 - ⚠️ Le **rôle du bot** doit être **au-dessus** des rôles distribués.
-- Logs à chaque changement : salon `CHANNEL_ROLE_LOGS` (sinon `CHANNEL_LOGS`).
-- `/reactionrole edit <id>` rouvre l'éditeur (met à jour le message publié) · `list` liste les `#id` · `delete <id>` supprime.
+- Logs : `CHANNEL_ROLE_LOGS` (sinon `CHANNEL_LOGS`).
+- `/reactionrole edit <id>` rouvre l'éditeur · `list` liste les `#id` · `delete <id>` supprime.
 
 ## Workflow
 Développement en local → `git commit` → `git push` (repo dédié) → déploiement sur l'hébergeur

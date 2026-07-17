@@ -33,6 +33,7 @@ db.exec(`
     behavior     TEXT NOT NULL DEFAULT 'normal',
     limit_count  INTEGER,
     embed_data   TEXT,
+    data         TEXT,
     created_at   INTEGER NOT NULL,
     updated_at   INTEGER NOT NULL
   );
@@ -57,3 +58,10 @@ db.exec(`
     expires_at INTEGER NOT NULL
   );
 `)
+
+// Migration douce : ajoute la colonne `data` aux bases créées avant le modèle multi-groupes.
+try {
+  db.exec('ALTER TABLE role_panels ADD COLUMN data TEXT')
+} catch {
+  // La colonne existe déjà : rien à faire.
+}

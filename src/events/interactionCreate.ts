@@ -1,14 +1,17 @@
 import type { Interaction } from 'discord.js'
 import { commandMap } from '../commands'
 import {
-  onAddRole,
+  onAddRoleToGroup,
+  onBack,
   onBuilderClose,
   onBuilderModal,
   onBuilderPublish,
-  onOpt,
+  onChannel,
+  onDeleteGroup,
+  onGopt,
+  onMain,
   onPanelButton,
   onPanelSelect,
-  onPickChannel,
   onPickEmbed,
 } from '../features/roles'
 import {
@@ -21,7 +24,7 @@ import {
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
- * Chaque fonctionnalité branche ses composants via leur préfixe de customId.
+ * Préfixes : emb:* (embed builder) · rrg:* (éditeur de panneau) · rr:* (panneau publié).
  */
 export async function onInteraction(interaction: Interaction): Promise<void> {
   try {
@@ -31,44 +34,42 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       return
     }
 
-    // Menus déroulants (string select)
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId
       if (id === 'emb:part') await onPartSelect(interaction)
-      else if (id === 'rrb:opt') await onOpt(interaction)
-      else if (id === 'rrb:embed') await onPickEmbed(interaction)
-      else if (id.startsWith('rr:sel:')) await onPanelSelect(interaction)
+      else if (id === 'rrg:main') await onMain(interaction)
+      else if (id === 'rrg:gopt') await onGopt(interaction)
+      else if (id === 'rrg:embed') await onPickEmbed(interaction)
+      else if (id.startsWith('rr:s:')) await onPanelSelect(interaction)
       return
     }
 
-    // Menus de rôles (éditeur de panneau)
     if (interaction.isRoleSelectMenu()) {
-      if (interaction.customId === 'rrb:addrole') await onAddRole(interaction)
+      if (interaction.customId === 'rrg:addrole') await onAddRoleToGroup(interaction)
       return
     }
 
-    // Menus de salons (éditeur de panneau)
     if (interaction.isChannelSelectMenu()) {
-      if (interaction.customId === 'rrb:channel') await onPickChannel(interaction)
+      if (interaction.customId === 'rrg:channel') await onChannel(interaction)
       return
     }
 
-    // Boutons
     if (interaction.isButton()) {
       const id = interaction.customId
-      if (id.startsWith('rr:tgl:')) await onPanelButton(interaction)
-      else if (id === 'rrb:publish') await onBuilderPublish(interaction)
-      else if (id === 'rrb:close') await onBuilderClose(interaction)
+      if (id.startsWith('rr:b:')) await onPanelButton(interaction)
+      else if (id === 'rrg:back') await onBack(interaction)
+      else if (id === 'rrg:delgroup') await onDeleteGroup(interaction)
+      else if (id === 'rrg:publish') await onBuilderPublish(interaction)
+      else if (id === 'rrg:close') await onBuilderClose(interaction)
       else if (id === 'emb:save') await onEditorSave(interaction)
       else if (id === 'emb:publishhere') await onEditorPublishHere(interaction)
       else if (id === 'emb:close') await onEditorClose(interaction)
       return
     }
 
-    // Soumissions de modals
     if (interaction.isModalSubmit()) {
       const id = interaction.customId
-      if (id.startsWith('rrb:m:')) await onBuilderModal(interaction)
+      if (id.startsWith('rrg:m:')) await onBuilderModal(interaction)
       else if (id.startsWith('emb:m:')) await onEditorModal(interaction)
       return
     }
