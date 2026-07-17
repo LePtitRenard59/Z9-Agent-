@@ -83,8 +83,9 @@ export async function applySelect(member: GuildMember, panel: RolePanel, selecte
 
 /** Journalise un changement de rôles dans le salon de logs, si configuré. */
 export async function logRoleChange(member: GuildMember, res: ApplyResult): Promise<void> {
-  if (!config.channels.logs || (res.added.length === 0 && res.removed.length === 0)) return
-  const channel = member.guild.channels.cache.get(config.channels.logs)
+  const channelId = config.channels.roleLogs || config.channels.logs
+  if (!channelId || (res.added.length === 0 && res.removed.length === 0)) return
+  const channel = member.guild.channels.cache.get(channelId)
   if (!channel || !channel.isTextBased() || !('send' in channel)) return
 
   const lines = [

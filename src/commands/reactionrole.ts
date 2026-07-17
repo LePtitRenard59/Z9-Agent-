@@ -2,7 +2,7 @@ import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 import type { Command } from '../types/command'
 import { rolePanelStore } from '../db/rolePanels'
 import { MODE_LABELS } from '../features/roles/types'
-import { startRoleBuilder } from '../features/roles/builder'
+import { startRoleBuilder, startRoleBuilderEdit } from '../features/roles/builder'
 
 /**
  * /reactionrole — panneaux de rôles (boutons / menu / réactions), configurés
@@ -14,6 +14,10 @@ export const reactionRole: Command = {
     .setDescription('Panneaux de rôles (boutons, menu ou réactions)')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
     .addSubcommand(s => s.setName('create').setDescription('Créer un panneau de rôles (éditeur interactif)'))
+    .addSubcommand(s =>
+      s.setName('edit').setDescription('Modifier un panneau existant')
+        .addIntegerOption(o => o.setName('id').setDescription('ID du panneau (voir /reactionrole list)').setRequired(true)),
+    )
     .addSubcommand(s => s.setName('list').setDescription('Lister les panneaux du serveur'))
     .addSubcommand(s =>
       s.setName('delete').setDescription('Supprimer un panneau')
@@ -28,6 +32,17 @@ export const reactionRole: Command = {
 
     if (sub === 'create') {
       await startRoleBuilder(interaction)
+      return
+    }
+
+    if (sub === 'edit') {
+      const id = interaction.options.getInteger('id', true)
+      const panel = rolePanelStore.get(id)
+      if (!panel || panel.guildId !== interaction.guildId) {
+        await interaction.reply({ content: `❌ Aucun panneau \`#${id}\`.`, ephemeral: true })
+        return
+      }
+      await startRoleBuilderEdit(interaction, panel)
       return
     }
 

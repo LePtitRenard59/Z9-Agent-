@@ -23,6 +23,7 @@ export const config = {
     suggestions: process.env.CHANNEL_SUGGESTIONS ?? '',
     bonsPlans: process.env.CHANNEL_BONS_PLANS ?? '',
     logs: process.env.CHANNEL_LOGS ?? '',
+    roleLogs: process.env.CHANNEL_ROLE_LOGS ?? '',
     contenu: process.env.CHANNEL_CONTENU ?? '',
   },
 } as const

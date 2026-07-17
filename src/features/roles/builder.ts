@@ -20,6 +20,7 @@ import {
   type StringSelectMenuInteraction,
 } from 'discord.js'
 import { Z9_COLOR } from '../../config'
+import { embedStore } from '../../db/embeds'
 import { rolePanelStore } from '../../db/rolePanels'
 import { buildEmbed, isHttpUrl } from '../embeds/render'
 import type { StoredEmbed } from '../embeds/types'
@@ -36,6 +37,14 @@ interface PanelDraft {
   limitCount?: number
   embed: StoredEmbed
   entries: RolePanelEntry[]
+  // Mode édition d'un panneau déjà publié :
+  panelId?: number
+  messageId?: string
+  origChannelId?: string
+}
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
 const drafts = new Map<string, PanelDraft>()
@@ -96,11 +105,27 @@ function renderBuilder(draft: PanelDraft): BaseMessageOptions {
     ),
   )
   const buttonRow = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-    new ButtonBuilder().setCustomId('rrb:publish').setLabel('Publier').setEmoji('✅').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('rrb:publish').setLabel(draft.panelId ? 'Mettre à jour' : 'Publier').setEmoji('✅').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('rrb:close').setLabel('Fermer').setEmoji('❌').setStyle(ButtonStyle.Secondary),
   )
 
-  return { content: summary, embeds: [preview], components: [roleRow, channelRow, optRow, buttonRow] }
+  const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [roleRow, channelRow, optRow]
+
+  // Ligne « charger un embed sauvegardé » (apparence complète) — seulement s'il en existe.
+  const savedEmbeds = embedStore.list(draft.guildId)
+  if (savedEmbeds.length) {
+    rows.push(
+      new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId('rrb:embed')
+          .setPlaceholder('🎨 Charger un embed sauvegardé comme apparence…')
+          .addOptions(savedEmbeds.slice(0, 25).map(n => ({ label: n, value: n }))),
+      ),
+    )
+  }
+  rows.push(buttonRow)
+
+  return { content: summary, embeds: [preview], components: rows }
 }
 
 async function expired(interaction: RoleSelectMenuInteraction | ChannelSelectMenuInteraction | StringSelectMenuInteraction | ButtonInteraction | ModalSubmitInteraction): Promise<void> {
@@ -121,6 +146,37 @@ export async function startRoleBuilder(interaction: ChatInputCommandInteraction)
   }
   drafts.set(interaction.user.id, draft)
   await interaction.reply({ ...renderBuilder(draft), ephemeral: true })
+}
+
+/** Ouvre l'éditeur sur un panneau déjà publié (édition). */
+export async function startRoleBuilderEdit(interaction: ChatInputCommandInteraction, panel: RolePanel): Promise<void> {
+  const draft: PanelDraft = {
+    guildId: panel.guildId,
+    channelId: panel.channelId,
+    origChannelId: panel.channelId,
+    panelId: panel.id,
+    messageId: panel.messageId,
+    mode: panel.mode,
+    behavior: panel.behavior,
+    limitCount: panel.limitCount,
+    embed: clone(panel.embed),
+    entries: panel.entries.map(e => ({ ...e })),
+  }
+  drafts.set(interaction.user.id, draft)
+  await interaction.reply({ ...renderBuilder(draft), ephemeral: true })
+}
+
+/** Charge un embed sauvegardé comme apparence du panneau. */
+export async function onPickEmbed(interaction: StringSelectMenuInteraction): Promise<void> {
+  const draft = drafts.get(interaction.user.id)
+  if (!draft) return expired(interaction)
+  const record = embedStore.get(draft.guildId, interaction.values[0])
+  if (!record) {
+    await interaction.reply({ content: '❌ Embed introuvable.', ephemeral: true })
+    return
+  }
+  draft.embed = clone(record.data)
+  await interaction.update(renderBuilder(draft))
 }
 
 export async function onAddRole(interaction: RoleSelectMenuInteraction): Promise<void> {
@@ -284,12 +340,12 @@ export async function onBuilderPublish(interaction: ButtonInteraction): Promise<
   }
 
   const channel = await interaction.guild?.channels.fetch(draft.channelId).catch(() => null)
-  if (!channel || !channel.isTextBased() || !('send' in channel)) {
+  if (!channel || !channel.isTextBased() || !('send' in channel) || !('messages' in channel)) {
     await interaction.reply({ content: '❌ Salon de publication invalide.', ephemeral: true })
     return
   }
 
-  const id = rolePanelStore.create(draft.guildId)
+  const id = draft.panelId ?? rolePanelStore.create(draft.guildId)
   const panel: RolePanel = {
     id,
     guildId: draft.guildId,
@@ -302,17 +358,39 @@ export async function onBuilderPublish(interaction: ButtonInteraction): Promise<
   }
   rolePanelStore.save(panel)
 
-  const message = await channel.send(buildPanelMessage(panel))
+  // Édition dans le même salon : on modifie le message existant. Sinon on (re)publie.
+  const editInPlace = draft.panelId && draft.messageId && draft.origChannelId === draft.channelId
+  let message
+  if (editInPlace) {
+    const existing = await channel.messages.fetch(draft.messageId as string).catch(() => null)
+    message = existing ? await existing.edit(buildPanelMessage(panel)) : await channel.send(buildPanelMessage(panel))
+  } else {
+    // Salon changé (ou création) : supprime l'ancien message s'il existe, puis publie.
+    if (draft.panelId && draft.messageId && draft.origChannelId) {
+      const oldChannel = await interaction.guild?.channels.fetch(draft.origChannelId).catch(() => null)
+      if (oldChannel?.isTextBased() && 'messages' in oldChannel) {
+        await oldChannel.messages.delete(draft.messageId).catch(() => undefined)
+      }
+    }
+    message = await channel.send(buildPanelMessage(panel))
+  }
   rolePanelStore.setPublished(id, draft.channelId, message.id)
 
   if (draft.mode === 'reactions') {
+    await message.reactions.removeAll().catch(() => undefined)
     for (const entry of draft.entries) {
       if (entry.emoji) await message.react(entry.emoji).catch(() => undefined)
     }
   }
 
   drafts.delete(interaction.user.id)
-  await interaction.update({ content: `✅ Panneau publié dans <#${draft.channelId}> !`, embeds: [], components: [] })
+  await interaction.update({
+    content: draft.panelId
+      ? `✅ Panneau \`#${id}\` mis à jour dans <#${draft.channelId}> !`
+      : `✅ Panneau publié dans <#${draft.channelId}> !`,
+    embeds: [],
+    components: [],
+  })
 }
 
 export async function onBuilderClose(interaction: ButtonInteraction): Promise<void> {

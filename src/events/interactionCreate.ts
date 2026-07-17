@@ -9,6 +9,7 @@ import {
   onPanelButton,
   onPanelSelect,
   onPickChannel,
+  onPickEmbed,
 } from '../features/roles'
 import {
   onEditorClose,
@@ -35,6 +36,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       const id = interaction.customId
       if (id === 'emb:part') await onPartSelect(interaction)
       else if (id === 'rrb:opt') await onOpt(interaction)
+      else if (id === 'rrb:embed') await onPickEmbed(interaction)
       else if (id.startsWith('rr:sel:')) await onPanelSelect(interaction)
       return
     }
