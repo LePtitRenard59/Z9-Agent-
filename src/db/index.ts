@@ -57,6 +57,28 @@ db.exec(`
     role_id    TEXT NOT NULL,
     expires_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS ticket_panels (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    TEXT NOT NULL,
+    channel_id  TEXT,
+    message_id  TEXT,
+    data        TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS tickets (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id     TEXT NOT NULL,
+    channel_id   TEXT NOT NULL,
+    user_id      TEXT NOT NULL,
+    category_key TEXT NOT NULL,
+    claimed_by   TEXT,
+    status       TEXT NOT NULL DEFAULT 'open',
+    created_at   INTEGER NOT NULL,
+    closed_at    INTEGER
+  );
 `)
 
 // Migration douce : ajoute la colonne `data` aux bases créées avant le modèle multi-groupes.

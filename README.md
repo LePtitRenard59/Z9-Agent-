@@ -52,9 +52,17 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 - ✅ `/ping` — test de latence
 - ✅ **Embed builder** — `/embed create · edit · post · list · delete · clone` : crée des embeds **nommés, sauvegardés et éditables** via un éditeur interactif (titre, description, couleur, image/GIF, miniature, champs, auteur, footer, timestamp, texte, boutons-liens, import JSON Discohook). Stockés en **SQLite**.
 - ✅ **Reaction-roles** — `/reactionrole create · edit · list · delete` : éditeur interactif **entièrement depuis Discord**, organisé en sections (écran principal + écran par groupe). Un panneau = **un embed riche + plusieurs groupes** (jusqu'à 5 rangées) : chaque groupe est un **menu**, des **boutons** ou des **réactions**, avec son propre comportement (normal / unique / ajout-seul / limité), ses rôles (emoji, description, label, style) et son titre. Plus des **boutons-liens**. → permet plusieurs menus (Ton Pays, Ta ville…) sur un seul message. Apparence via formulaire **ou** embed sauvegardé complet. **Édition** en place + **logs** (`CHANNEL_ROLE_LOGS`). Persistés en SQLite (JSON).
+- ✅ **Tickets** — `/tickets panel · edit · list · delete` : éditeur interactif pour un panneau à **menu de catégories**. À l'ouverture, création d'un **salon privé** (membre + rôle staff), boutons **Prendre en charge** / **Fermer**, **anti-doublon** (1 ticket ouvert par catégorie). Fermeture → **transcript HTML** archivé dans le salon de logs + suppression du salon.
 - ✅ Message de bienvenue automatique
-- 🔜 Reaction-roles avancés (rôles temporaires, prérequis), tickets, report, suggestions, FAQ, annonces, star-board, logs
+- 🔜 Report, suggestions, FAQ, annonces, star-board, logs, reaction-roles avancés (rôles temporaires)
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
+
+### Utiliser les tickets (`/tickets panel`)
+1. `/tickets panel` (staff) dans le salon où publier le panneau → éditeur éphémère.
+2. **Rôle staff** (qui voit les tickets), **Catégorie parent** (où créer les salons), **Salon des transcripts**.
+3. **⚙️ Configurer…** → Apparence · Ajouter une catégorie (nom, emoji, description, message d'accueil) · Éditer / Retirer.
+4. **✅ Publier ici** → le membre choisit une catégorie dans le menu → un salon privé `ticket-…` est créé.
+5. Dans le ticket : **Prendre en charge** (staff) · **Fermer** → transcript HTML dans le salon de logs, puis suppression.
 
 ### Base de données
 Le bot utilise **`node:sqlite`** (module SQLite intégré à Node, aucune dépendance native).
