@@ -184,9 +184,15 @@ export async function onPartSelect(interaction: StringSelectMenuInteraction): Pr
 }
 
 function mergeDiscohook(d: StoredEmbed, raw: string): boolean {
+  // Tolérance : retire d'éventuels ``` / ```json et espaces autour du JSON collé.
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim()
   let parsed: unknown
   try {
-    parsed = JSON.parse(raw)
+    parsed = JSON.parse(cleaned)
   } catch {
     return false
   }
