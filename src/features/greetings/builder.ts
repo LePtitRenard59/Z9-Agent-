@@ -18,7 +18,9 @@ import {
 } from 'discord.js'
 import { StringSelectMenuBuilder } from 'discord.js'
 import { Z9_COLOR } from '../../config'
+import { embedStore } from '../../db/embeds'
 import { greetingStore } from '../../db/greetings'
+import { mergeDiscohook } from '../embeds/import'
 import { buildEmbed, isHttpUrl } from '../embeds/render'
 import { buildGreetingMessage, type GreetingVars } from './render'
 import { KIND_LABELS, type GreetingConfig, type GreetingKind } from './types'
@@ -64,6 +66,7 @@ function render(draft: Draft): BaseMessageOptions {
     new StringSelectMenuBuilder().setCustomId('grt:opt').setPlaceholder('⚙️ Configurer…').addOptions(
       { label: 'Message (texte)', value: 'text', emoji: '✏️' },
       { label: 'Embed (titre, description, couleur, image)', value: 'embed', emoji: '🎨' },
+      { label: 'Importer un JSON Discohook', value: 'import', emoji: '📥' },
       { label: `Mode : ${c.useEmbed ? 'repasser en texte' : 'utiliser un embed'}`, value: 'mode', emoji: '🔀' },
       { label: 'Tester dans le salon', value: 'test', emoji: '🧪' },
     ),
@@ -73,7 +76,16 @@ function render(draft: Draft): BaseMessageOptions {
     new ButtonBuilder().setCustomId('grt:close').setLabel('Fermer').setEmoji('❌').setStyle(ButtonStyle.Secondary),
   )
 
-  return { content: summary, embeds, components: [channelRow, optRow, buttonRow] }
+  const rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [channelRow, optRow]
+  const savedEmbeds = embedStore.list(draft.guildId)
+  if (savedEmbeds.length) {
+    rows.push(new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+      new StringSelectMenuBuilder().setCustomId('grt:embed').setPlaceholder('🎨 Charger un embed sauvegardé…').addOptions(savedEmbeds.slice(0, 25).map(n => ({ label: n, value: n }))),
+    ))
+  }
+  rows.push(buttonRow)
+
+  return { content: summary, embeds, components: rows }
 }
 
 async function expired(interaction: ChannelSelectMenuInteraction | StringSelectMenuInteraction | ButtonInteraction | ModalSubmitInteraction): Promise<void> {
@@ -132,6 +144,13 @@ export async function onGrtOpt(interaction: StringSelectMenuInteraction): Promis
     await interaction.showModal(modal)
     return
   }
+  if (v === 'import') {
+    const modal = new ModalBuilder().setCustomId('grt:m:import').setTitle('Importer un JSON Discohook')
+    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(
+      new TextInputBuilder().setCustomId('json').setLabel('Colle le JSON').setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(4000)))
+    await interaction.showModal(modal)
+    return
+  }
   if (v === 'mode') {
     draft.config.useEmbed = !draft.config.useEmbed
     save(draft)
@@ -158,13 +177,33 @@ export async function onGrtOpt(interaction: StringSelectMenuInteraction): Promis
   }
 }
 
+export async function onGrtPickEmbed(interaction: StringSelectMenuInteraction): Promise<void> {
+  const draft = drafts.get(interaction.user.id)
+  if (!draft) return expired(interaction)
+  const record = embedStore.get(draft.guildId, interaction.values[0])
+  if (!record) {
+    await interaction.reply({ content: '❌ Embed introuvable.', ephemeral: true })
+    return
+  }
+  draft.config.embed = JSON.parse(JSON.stringify(record.data))
+  draft.config.useEmbed = true
+  save(draft)
+  await interaction.update(render(draft))
+}
+
 export async function onGrtModal(interaction: ModalSubmitInteraction): Promise<void> {
   const draft = drafts.get(interaction.user.id)
   if (!draft) return expired(interaction)
   const part = interaction.customId.split(':')[2]
   const val = (id: string) => interaction.fields.getTextInputValue(id).trim()
 
-  if (part === 'text') {
+  if (part === 'import') {
+    if (!mergeDiscohook(draft.config.embed, interaction.fields.getTextInputValue('json'))) {
+      await interaction.reply({ content: '❌ JSON invalide.', ephemeral: true })
+      return
+    }
+    draft.config.useEmbed = true
+  } else if (part === 'text') {
     draft.config.content = interaction.fields.getTextInputValue('content')
   } else if (part === 'embed') {
     draft.config.embed.title = val('title') || undefined

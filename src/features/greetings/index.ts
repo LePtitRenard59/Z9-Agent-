@@ -4,6 +4,7 @@ export {
   startGreetingEditor,
   onGrtChannel,
   onGrtOpt,
+  onGrtPickEmbed,
   onGrtModal,
   onGrtToggle,
   onGrtClose,

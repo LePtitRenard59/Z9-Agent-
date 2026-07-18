@@ -35,7 +35,7 @@ import {
   onTicketClose,
 } from '../features/tickets'
 import { onReportAction, onReportMessage, onReportModal, onReportUser } from '../features/report/report'
-import { onGrtChannel, onGrtClose, onGrtModal, onGrtOpt, onGrtToggle } from '../features/greetings'
+import { onGrtChannel, onGrtClose, onGrtModal, onGrtOpt, onGrtPickEmbed, onGrtToggle } from '../features/greetings'
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
@@ -69,6 +69,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id === 'tkt:open') await onOpenTicket(interaction)
       else if (id === 'tk:main') await onTicketMain(interaction)
       else if (id === 'grt:opt') await onGrtOpt(interaction)
+      else if (id === 'grt:embed') await onGrtPickEmbed(interaction)
       return
     }
 
