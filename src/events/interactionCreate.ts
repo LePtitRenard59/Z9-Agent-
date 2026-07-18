@@ -34,6 +34,7 @@ import {
   onTicketPublish,
   onTicketClose,
 } from '../features/tickets'
+import { onReportAction, onReportMessage, onReportModal, onReportUser } from '../features/report/report'
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
@@ -44,6 +45,16 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
     if (interaction.isChatInputCommand()) {
       const command = commandMap.get(interaction.commandName)
       if (command) await command.execute(interaction)
+      return
+    }
+
+    // Menus contextuels (clic droit)
+    if (interaction.isMessageContextMenuCommand()) {
+      if (interaction.commandName === 'Signaler le message') await onReportMessage(interaction)
+      return
+    }
+    if (interaction.isUserContextMenuCommand()) {
+      if (interaction.commandName === 'Signaler le membre') await onReportUser(interaction)
       return
     }
 
@@ -89,6 +100,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id.startsWith('tkt:close:')) await onCloseTicket(interaction)
       else if (id === 'tk:publish') await onTicketPublish(interaction)
       else if (id === 'tk:close') await onTicketClose(interaction)
+      else if (id === 'report:handled' || id === 'report:ignore') await onReportAction(interaction)
       return
     }
 
@@ -97,6 +109,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       if (id.startsWith('rrg:m:')) await onBuilderModal(interaction)
       else if (id.startsWith('emb:m:')) await onEditorModal(interaction)
       else if (id.startsWith('tk:m:')) await onTicketModal(interaction)
+      else if (id.startsWith('report:')) await onReportModal(interaction)
       return
     }
   } catch (error) {

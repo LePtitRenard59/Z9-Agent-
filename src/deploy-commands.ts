@@ -1,6 +1,7 @@
 import { REST, Routes } from 'discord.js'
 import { config } from './config'
 import { commands } from './commands'
+import { contextCommands } from './commands/context'
 
 /**
  * Enregistre les slash-commands sur le serveur Z9 (déploiement « guild » =
@@ -8,7 +9,7 @@ import { commands } from './commands'
  *   npm run deploy
  */
 async function main(): Promise<void> {
-  const body = commands.map(command => command.data.toJSON())
+  const body = [...commands.map(command => command.data.toJSON()), ...contextCommands.map(c => c.toJSON())]
   const rest = new REST().setToken(config.token)
 
   console.log(`Déploiement de ${body.length} commande(s) sur la guilde ${config.guildId}…`)
