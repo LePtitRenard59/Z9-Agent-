@@ -33,7 +33,7 @@ interface Draft {
 
 const drafts = new Map<string, Draft>()
 
-const VARS_HINT = 'Variables : `{user}` `{username}` `{tag}` `{server}` `{membercount}`'
+const VARS_HINT = 'Variables : `{user}` `{username}` `{tag}` `{server}` `{membercount}` `{avatar}` `{server_icon}` — utilisables aussi dans l’auteur, le footer, l’image de l’embed.'
 
 function parseColor(input: string): number | undefined {
   const s = input.trim().toLowerCase()
@@ -117,6 +117,8 @@ function varsFor(interaction: StringSelectMenuInteraction): GreetingVars {
     tag: interaction.user.tag,
     server: interaction.guild?.name ?? 'le serveur',
     memberCount: interaction.guild?.memberCount ?? 0,
+    avatar: interaction.user.displayAvatarURL({ extension: 'png', size: 256 }),
+    serverIcon: interaction.guild?.iconURL({ extension: 'png', size: 256 }) ?? '',
   }
 }
 

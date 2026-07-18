@@ -10,6 +10,8 @@ function varsFor(member: GuildMember | PartialGuildMember): GreetingVars {
     tag: member.user.tag,
     server: member.guild.name,
     memberCount: member.guild.memberCount,
+    avatar: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
+    serverIcon: member.guild.iconURL({ extension: 'png', size: 256 }) ?? '',
   }
 }
 
