@@ -11,9 +11,11 @@ export interface TicketCategory {
 export interface TicketPanelConfig {
   embed: StoredEmbed
   categories: TicketCategory[]
-  staffRoleId?: string
+  staffRoleIds: string[]
   parentCategoryId?: string
   logsChannelId?: string
+  /** @deprecated ancien champ mono-rôle (migré vers staffRoleIds). */
+  staffRoleId?: string
 }
 
 export interface TicketPanel {
@@ -42,5 +44,6 @@ export function emptyPanelConfig(): TicketPanelConfig {
   return {
     embed: { title: '🎫 Ouvrir un ticket', description: 'Choisis une catégorie ci-dessous pour contacter le staff.' },
     categories: [],
+    staffRoleIds: [],
   }
 }

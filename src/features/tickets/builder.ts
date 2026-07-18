@@ -62,14 +62,14 @@ function render(draft: TicketDraft): BaseMessageOptions {
     : '_aucune — ajoutes-en une_'
   const summary = [
     '🎫 **Éditeur de panneau de tickets**',
-    `Rôle staff : ${c.staffRoleId ? `<@&${c.staffRoleId}>` : '_non défini_'}`,
+    `Rôles staff : ${c.staffRoleIds.length ? c.staffRoleIds.map(id => `<@&${id}>`).join(' ') : '_non défini_'}`,
     `Catégorie parent : ${c.parentCategoryId ? `<#${c.parentCategoryId}>` : '_non défini (salons à la racine)_'}`,
     `Salon des transcripts : ${c.logsChannelId ? `<#${c.logsChannelId}>` : '_non défini_'}`,
     `**Catégories de ticket :**\n${catLines}`,
   ].join('\n')
 
   const staffRow = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-    new RoleSelectMenuBuilder().setCustomId('tk:staff').setPlaceholder('🛡️ Rôle staff (qui voit les tickets)…').setMinValues(0).setMaxValues(1),
+    new RoleSelectMenuBuilder().setCustomId('tk:staff').setPlaceholder('🛡️ Rôles staff (qui voient les tickets)…').setMinValues(0).setMaxValues(10),
   )
   const parentRow = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new ChannelSelectMenuBuilder().setCustomId('tk:parent').setPlaceholder('📁 Catégorie parent des tickets…').addChannelTypes(ChannelType.GuildCategory).setMinValues(0).setMaxValues(1),
@@ -123,7 +123,7 @@ export async function startTicketBuilderEdit(interaction: ChatInputCommandIntera
 export async function onStaff(interaction: RoleSelectMenuInteraction): Promise<void> {
   const draft = drafts.get(interaction.user.id)
   if (!draft) return expired(interaction)
-  draft.config.staffRoleId = interaction.values[0] || undefined
+  draft.config.staffRoleIds = [...interaction.values]
   await interaction.update(render(draft))
 }
 export async function onParent(interaction: ChannelSelectMenuInteraction): Promise<void> {

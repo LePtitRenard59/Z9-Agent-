@@ -40,7 +40,8 @@ export async function onOpenTicket(interaction: StringSelectMenuInteraction): Pr
   await interaction.deferReply({ ephemeral: true })
 
   const guild = interaction.guild
-  const staffRoleId = panel.config.staffRoleId
+  const staffRoleIds = panel.config.staffRoleIds
+  const staffAllow = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles]
   try {
     const channel = await guild.channels.create({
       name: `ticket-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 90) || `ticket-${Date.now()}`,
@@ -52,12 +53,7 @@ export async function onOpenTicket(interaction: StringSelectMenuInteraction): Pr
           id: interaction.user.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles],
         },
-        ...(staffRoleId
-          ? [{
-              id: staffRoleId,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles],
-            }]
-          : []),
+        ...staffRoleIds.map(roleId => ({ id: roleId, allow: staffAllow })),
         {
           id: interaction.client.user.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels],
@@ -66,7 +62,7 @@ export async function onOpenTicket(interaction: StringSelectMenuInteraction): Pr
     })
 
     const ticketId = ticketStore.create(guild.id, channel.id, interaction.user.id, category.key)
-    await channel.send(buildWelcomeMessage(ticketId, category, interaction.user.id, staffRoleId))
+    await channel.send(buildWelcomeMessage(ticketId, category, interaction.user.id, staffRoleIds))
     await interaction.editReply({ content: `✅ Ton ticket a été créé : <#${channel.id}>` })
   } catch (error) {
     console.error('Erreur création ticket :', error)
@@ -89,7 +85,7 @@ export async function onClaimTicket(interaction: ButtonInteraction): Promise<voi
 
   const panel = ticketPanelStore.getByGuild(interaction.guildId as string)
   const category = panel?.config.categories.find(c => c.key === ticket.categoryKey) ?? ({ key: ticket.categoryKey, label: 'Ticket' } as TicketCategory)
-  await interaction.update(buildWelcomeMessage(ticket.id, category, ticket.userId, panel?.config.staffRoleId, interaction.user.id))
+  await interaction.update(buildWelcomeMessage(ticket.id, category, ticket.userId, panel?.config.staffRoleIds ?? [], interaction.user.id))
   await interaction.followUp({ content: `🙋 Ticket pris en charge par <@${interaction.user.id}>.`, ephemeral: false }).catch(() => undefined)
 }
 

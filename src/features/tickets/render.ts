@@ -42,7 +42,7 @@ export function buildWelcomeMessage(
   ticketId: number,
   category: TicketCategory,
   openerId: string,
-  staffRoleId?: string,
+  staffRoleIds: string[] = [],
   claimedBy?: string,
 ): BaseMessageOptions {
   const embed = new EmbedBuilder()
@@ -64,7 +64,7 @@ export function buildWelcomeMessage(
   )
 
   return {
-    content: `<@${openerId}>${staffRoleId ? ` · <@&${staffRoleId}>` : ''}`,
+    content: `<@${openerId}>${staffRoleIds.length ? ' · ' + staffRoleIds.map(id => `<@&${id}>`).join(' ') : ''}`,
     embeds: [embed],
     components: [row],
   }

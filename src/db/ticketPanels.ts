@@ -18,12 +18,17 @@ const setPublishedStmt = db.prepare('UPDATE ticket_panels SET channel_id=?, mess
 const deleteStmt = db.prepare('DELETE FROM ticket_panels WHERE id = ?')
 
 function toPanel(row: PanelRow): TicketPanel {
+  const config = JSON.parse(row.data) as TicketPanelConfig
+  // Migration : ancien mono-rôle → liste.
+  if (!Array.isArray(config.staffRoleIds)) {
+    config.staffRoleIds = config.staffRoleId ? [config.staffRoleId] : []
+  }
   return {
     id: row.id,
     guildId: row.guild_id,
     channelId: row.channel_id ?? undefined,
     messageId: row.message_id ?? undefined,
-    config: JSON.parse(row.data) as TicketPanelConfig,
+    config,
   }
 }
 
