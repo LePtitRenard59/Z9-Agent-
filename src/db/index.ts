@@ -79,6 +79,13 @@ db.exec(`
     created_at   INTEGER NOT NULL,
     closed_at    INTEGER
   );
+
+  CREATE TABLE IF NOT EXISTS greetings (
+    guild_id TEXT NOT NULL,
+    kind     TEXT NOT NULL,
+    data     TEXT NOT NULL,
+    PRIMARY KEY (guild_id, kind)
+  );
 `)
 
 // Migration douce : ajoute la colonne `data` aux bases créées avant le modèle multi-groupes.

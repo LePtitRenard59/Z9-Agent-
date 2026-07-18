@@ -35,6 +35,7 @@ import {
   onTicketClose,
 } from '../features/tickets'
 import { onReportAction, onReportMessage, onReportModal, onReportUser } from '../features/report/report'
+import { onGrtChannel, onGrtClose, onGrtModal, onGrtOpt, onGrtToggle } from '../features/greetings'
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
@@ -67,6 +68,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id.startsWith('rr:s:')) await onPanelSelect(interaction)
       else if (id === 'tkt:open') await onOpenTicket(interaction)
       else if (id === 'tk:main') await onTicketMain(interaction)
+      else if (id === 'grt:opt') await onGrtOpt(interaction)
       return
     }
 
@@ -82,6 +84,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       if (id === 'rrg:channel') await onChannel(interaction)
       else if (id === 'tk:parent') await onParent(interaction)
       else if (id === 'tk:logs') await onLogs(interaction)
+      else if (id === 'grt:channel') await onGrtChannel(interaction)
       return
     }
 
@@ -101,6 +104,8 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id === 'tk:publish') await onTicketPublish(interaction)
       else if (id === 'tk:close') await onTicketClose(interaction)
       else if (id === 'report:handled' || id === 'report:ignore') await onReportAction(interaction)
+      else if (id === 'grt:toggle') await onGrtToggle(interaction)
+      else if (id === 'grt:close') await onGrtClose(interaction)
       return
     }
 
@@ -110,6 +115,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id.startsWith('emb:m:')) await onEditorModal(interaction)
       else if (id.startsWith('tk:m:')) await onTicketModal(interaction)
       else if (id.startsWith('report:')) await onReportModal(interaction)
+      else if (id.startsWith('grt:m:')) await onGrtModal(interaction)
       return
     }
   } catch (error) {
