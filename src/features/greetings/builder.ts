@@ -21,7 +21,7 @@ import { Z9_COLOR } from '../../config'
 import { embedStore } from '../../db/embeds'
 import { greetingStore } from '../../db/greetings'
 import { mergeDiscohook } from '../embeds/import'
-import { buildEmbed, isHttpUrl } from '../embeds/render'
+import { buildEmbed } from '../embeds/render'
 import { buildGreetingMessage, type GreetingVars } from './render'
 import { KIND_LABELS, type GreetingConfig, type GreetingKind } from './types'
 
@@ -64,8 +64,12 @@ function render(draft: Draft): BaseMessageOptions {
   )
   const optRow = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new StringSelectMenuBuilder().setCustomId('grt:opt').setPlaceholder('⚙️ Configurer…').addOptions(
-      { label: 'Message (texte)', value: 'text', emoji: '✏️' },
-      { label: 'Embed (titre, description, couleur, image)', value: 'embed', emoji: '🎨' },
+      { label: 'Message (texte au-dessus)', value: 'text', emoji: '✏️' },
+      { label: 'Embed — infos de base (titre, description, couleur)', value: 'basic', emoji: '🎨' },
+      { label: 'Embed — auteur', value: 'author', emoji: '👤' },
+      { label: 'Embed — footer', value: 'footer', emoji: '🔻' },
+      { label: 'Embed — images (grande image, miniature)', value: 'images', emoji: '🖼️' },
+      { label: `Embed — horodatage : ${c.embed.timestamp ? 'activé' : 'désactivé'}`, value: 'timestamp', emoji: '🕒' },
       { label: 'Importer un JSON Discohook', value: 'import', emoji: '📥' },
       { label: `Mode : ${c.useEmbed ? 'repasser en texte' : 'utiliser un embed'}`, value: 'mode', emoji: '🔀' },
       { label: 'Tester dans le salon', value: 'test', emoji: '🧪' },
@@ -134,16 +138,52 @@ export async function onGrtOpt(interaction: StringSelectMenuInteraction): Promis
     await interaction.showModal(modal)
     return
   }
-  if (v === 'embed') {
-    const modal = new ModalBuilder().setCustomId('grt:m:embed').setTitle('Embed')
-    const add = (id: string, label: string, style: TextInputStyle, value?: string, ph?: string) =>
-      modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(style).setRequired(false).setValue(value ?? '').setPlaceholder(ph ?? '')))
-    add('title', 'Titre', TextInputStyle.Short, draft.config.embed.title)
-    add('description', 'Description', TextInputStyle.Paragraph, draft.config.embed.description)
-    add('color', 'Couleur (#E8943A ou nom)', TextInputStyle.Short, typeof draft.config.embed.color === 'number' ? '#' + draft.config.embed.color.toString(16).padStart(6, '0') : '')
-    add('image', 'Image / bannière (URL)', TextInputStyle.Short, draft.config.embed.image, 'https://…')
-    await interaction.showModal(modal)
+  const e = draft.config.embed
+  const modal = (id: string, title: string, fields: [string, string, TextInputStyle, string?, string?][]): ModalBuilder => {
+    const m = new ModalBuilder().setCustomId(id).setTitle(title)
+    for (const [fid, label, style, value, ph] of fields) {
+      m.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder().setCustomId(fid).setLabel(label).setStyle(style).setRequired(false).setValue(value ?? '').setPlaceholder(ph ?? '')))
+    }
+    return m
+  }
+
+  if (v === 'basic') {
+    await interaction.showModal(modal('grt:m:basic', 'Embed — infos de base', [
+      ['title', 'Titre', TextInputStyle.Short, e.title],
+      ['description', 'Description', TextInputStyle.Paragraph, e.description],
+      ['color', 'Couleur (#E8943A ou nom)', TextInputStyle.Short, typeof e.color === 'number' ? '#' + e.color.toString(16).padStart(6, '0') : ''],
+      ['url', 'Lien du titre (optionnel)', TextInputStyle.Short, e.url, 'https://…'],
+    ]))
+    return
+  }
+  if (v === 'author') {
+    await interaction.showModal(modal('grt:m:author', 'Embed — auteur', [
+      ['name', 'Nom (ex: {username})', TextInputStyle.Short, e.author?.name],
+      ['icon', 'Icône (URL ou {avatar})', TextInputStyle.Short, e.author?.iconURL],
+      ['url', 'Lien (optionnel)', TextInputStyle.Short, e.author?.url],
+    ]))
+    return
+  }
+  if (v === 'footer') {
+    await interaction.showModal(modal('grt:m:footer', 'Embed — footer', [
+      ['text', 'Texte (ex: {membercount} membres)', TextInputStyle.Short, e.footer?.text],
+      ['icon', 'Icône (URL ou {server_icon})', TextInputStyle.Short, e.footer?.iconURL],
+    ]))
+    return
+  }
+  if (v === 'images') {
+    await interaction.showModal(modal('grt:m:images', 'Embed — images', [
+      ['image', 'Grande image / bannière (URL)', TextInputStyle.Short, e.image, 'https://… ou {avatar}'],
+      ['thumbnail', 'Miniature (URL ou {server_icon})', TextInputStyle.Short, e.thumbnail],
+    ]))
+    return
+  }
+  if (v === 'timestamp') {
+    e.timestamp = !e.timestamp
+    draft.config.useEmbed = true
+    save(draft)
+    await interaction.update(render(draft))
     return
   }
   if (v === 'import') {
@@ -207,17 +247,29 @@ export async function onGrtModal(interaction: ModalSubmitInteraction): Promise<v
     draft.config.useEmbed = true
   } else if (part === 'text') {
     draft.config.content = interaction.fields.getTextInputValue('content')
-  } else if (part === 'embed') {
-    draft.config.embed.title = val('title') || undefined
-    draft.config.embed.description = val('description') || undefined
+  } else if (part === 'basic') {
+    const e = draft.config.embed
+    e.title = val('title') || undefined
+    e.description = val('description') || undefined
+    e.url = val('url') || undefined // brut : peut contenir une variable
     const raw = val('color')
     if (raw) {
       const c = parseColor(raw)
-      if (c === undefined) { await interaction.reply({ content: '❌ Couleur non reconnue.', ephemeral: true }); return }
-      draft.config.embed.color = c
-    } else draft.config.embed.color = undefined
-    const img = val('image')
-    draft.config.embed.image = img && isHttpUrl(img) ? img : undefined
+      if (c === undefined) { await interaction.reply({ content: '❌ Couleur non reconnue (ex: `#E8943A` ou `orange`).', ephemeral: true }); return }
+      e.color = c
+    } else e.color = undefined
+    draft.config.useEmbed = true
+  } else if (part === 'author') {
+    const name = val('name')
+    draft.config.embed.author = name ? { name, iconURL: val('icon') || undefined, url: val('url') || undefined } : undefined
+    draft.config.useEmbed = true
+  } else if (part === 'footer') {
+    const text = val('text')
+    draft.config.embed.footer = text ? { text, iconURL: val('icon') || undefined } : undefined
+    draft.config.useEmbed = true
+  } else if (part === 'images') {
+    draft.config.embed.image = val('image') || undefined
+    draft.config.embed.thumbnail = val('thumbnail') || undefined
     draft.config.useEmbed = true
   }
   save(draft)
