@@ -36,6 +36,20 @@ import {
 } from '../features/tickets'
 import { onReportAction, onReportMessage, onReportModal, onReportUser } from '../features/report/report'
 import { onGrtChannel, onGrtClose, onGrtModal, onGrtOpt, onGrtPickEmbed, onGrtToggle } from '../features/greetings'
+import {
+  onFaqButton,
+  onFqBack,
+  onFqBopt,
+  onFqChannel,
+  onFqClose,
+  onFqDelButton,
+  onFqMain,
+  onFqModal,
+  onFqPickAnsEmbed,
+  onFqPickEmbed,
+  onFqPublish,
+  onFqTestAnswer,
+} from '../features/faq'
 
 /**
  * Routeur central des interactions : slash-commands, modals, boutons, menus.
@@ -70,6 +84,10 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id === 'tk:main') await onTicketMain(interaction)
       else if (id === 'grt:opt') await onGrtOpt(interaction)
       else if (id === 'grt:embed') await onGrtPickEmbed(interaction)
+      else if (id === 'fq:main') await onFqMain(interaction)
+      else if (id === 'fq:bopt') await onFqBopt(interaction)
+      else if (id === 'fq:embed') await onFqPickEmbed(interaction)
+      else if (id === 'fq:ansembed') await onFqPickAnsEmbed(interaction)
       return
     }
 
@@ -86,6 +104,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id === 'tk:parent') await onParent(interaction)
       else if (id === 'tk:logs') await onLogs(interaction)
       else if (id === 'grt:channel') await onGrtChannel(interaction)
+      else if (id === 'fq:channel') await onFqChannel(interaction)
       return
     }
 
@@ -107,6 +126,12 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id === 'report:handled' || id === 'report:ignore') await onReportAction(interaction)
       else if (id === 'grt:toggle') await onGrtToggle(interaction)
       else if (id === 'grt:close') await onGrtClose(interaction)
+      else if (id.startsWith('faq:b:')) await onFaqButton(interaction)
+      else if (id === 'fq:back') await onFqBack(interaction)
+      else if (id === 'fq:delbtn') await onFqDelButton(interaction)
+      else if (id === 'fq:testans') await onFqTestAnswer(interaction)
+      else if (id === 'fq:publish') await onFqPublish(interaction)
+      else if (id === 'fq:close') await onFqClose(interaction)
       return
     }
 
@@ -117,6 +142,7 @@ export async function onInteraction(interaction: Interaction): Promise<void> {
       else if (id.startsWith('tk:m:')) await onTicketModal(interaction)
       else if (id.startsWith('report:')) await onReportModal(interaction)
       else if (id.startsWith('grt:m:')) await onGrtModal(interaction)
+      else if (id.startsWith('fq:m:')) await onFqModal(interaction)
       return
     }
   } catch (error) {

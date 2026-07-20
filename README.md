@@ -55,7 +55,8 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 - ✅ **Tickets** — `/tickets panel · edit · list · delete` : éditeur interactif pour un panneau à **menu de catégories**. À l'ouverture, création d'un **salon privé** (membre + rôles staff), boutons **Prendre en charge** / **Fermer**, **anti-doublon** (1 ticket ouvert par catégorie). Fermeture → **transcript HTML** archivé dans le salon de logs + suppression du salon.
 - ✅ **Report** — menus contextuels (clic droit) **« Signaler le message »** et **« Signaler le membre »** → formulaire de raison → récap envoyé dans `#signalements` (`CHANNEL_REPORTS`) avec boutons staff **Marquer traité / Ignorer**. Cooldown anti-abus.
 - ✅ **Bienvenue / Au revoir** — `/welcome` et `/goodbye` : éditeur interactif. Message **texte** au-dessus + **embed entièrement personnalisable** par sections (infos de base, **auteur**, **footer**, **images**, horodatage), **import JSON Discohook** ou **embed sauvegardé**, activer/désactiver, bouton **Tester**. **Variables** `{user}` `{username}` `{tag}` `{server}` `{membercount}` `{avatar}` `{server_icon}` — utilisables **partout** (auteur, footer, image…). Envoi auto à l'arrivée / au départ. Config en SQLite.
-- 🔜 Suggestions, FAQ, annonces, star-board, logs, reaction-roles avancés (rôles temporaires)
+- ✅ **FAQ** — `/faq create · edit · list · delete` : éditeur interactif (écran panneau + écran par bouton). Un panneau = **un embed personnalisable + des boutons** (libellé, emoji, couleur) ; chaque bouton envoie sa **réponse en éphémère** (embed personnalisable : infos de base, import JSON ou embed sauvegardé). Persistée en SQLite.
+- 🔜 Salons statistiques, suggestions, annonces, star-board, logs, reaction-roles avancés
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
 
 ### Utiliser les tickets (`/tickets panel`)

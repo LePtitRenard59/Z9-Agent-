@@ -86,6 +86,16 @@ db.exec(`
     data     TEXT NOT NULL,
     PRIMARY KEY (guild_id, kind)
   );
+
+  CREATE TABLE IF NOT EXISTS faq_panels (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id   TEXT NOT NULL,
+    channel_id TEXT,
+    message_id TEXT,
+    data       TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `)
 
 // Migration douce : ajoute la colonne `data` aux bases créées avant le modèle multi-groupes.
