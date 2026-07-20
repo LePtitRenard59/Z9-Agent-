@@ -3,6 +3,7 @@ import { config } from './config'
 import { onInteraction } from './events/interactionCreate'
 import { onGuildMemberAdd, onGuildMemberRemove } from './events/greetings'
 import { onReactionAdd, onReactionRemove } from './events/reactions'
+import { startStatsUpdater } from './features/stats/updater'
 
 const client = new Client({
   intents: [
@@ -17,6 +18,7 @@ const client = new Client({
 
 client.once(Events.ClientReady, readyClient => {
   console.log(`✅ Connecté en tant que ${readyClient.user.tag}`)
+  startStatsUpdater(readyClient)
 })
 
 client.on(Events.InteractionCreate, onInteraction)

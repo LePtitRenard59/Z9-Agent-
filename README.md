@@ -56,7 +56,8 @@ embeds/               JSON Discohook versionnés (embeds réutilisables)
 - ✅ **Report** — menus contextuels (clic droit) **« Signaler le message »** et **« Signaler le membre »** → formulaire de raison → récap envoyé dans `#signalements` (`CHANNEL_REPORTS`) avec boutons staff **Marquer traité / Ignorer**. Cooldown anti-abus.
 - ✅ **Bienvenue / Au revoir** — `/welcome` et `/goodbye` : éditeur interactif. Message **texte** au-dessus + **embed entièrement personnalisable** par sections (infos de base, **auteur**, **footer**, **images**, horodatage), **import JSON Discohook** ou **embed sauvegardé**, activer/désactiver, bouton **Tester**. **Variables** `{user}` `{username}` `{tag}` `{server}` `{membercount}` `{avatar}` `{server_icon}` — utilisables **partout** (auteur, footer, image…). Envoi auto à l'arrivée / au départ. Config en SQLite.
 - ✅ **FAQ** — `/faq create · edit · list · delete` : éditeur interactif (écran panneau + écran par bouton). Un panneau = **un embed personnalisable + des boutons** (libellé, emoji, couleur) ; chaque bouton envoie sa **réponse en éphémère** (embed personnalisable : infos de base, import JSON ou embed sauvegardé). Persistée en SQLite.
-- 🔜 Salons statistiques, suggestions, annonces, star-board, logs, reaction-roles avancés
+- ✅ **Salons statistiques** — `/stats setup · refresh · remove` : crée une catégorie **📊 Statistiques** avec des salons vocaux verrouillés **Membres / Boosts / Invitation**, mis à jour automatiquement (~10 min, dans les limites de rate-limit Discord).
+- 🔜 Suggestions, annonces, star-board, logs, reaction-roles avancés
 - ⏳ (après le backend) embed paiement/accès + attribution automatique du rôle d'accès
 
 ### Utiliser les tickets (`/tickets panel`)
